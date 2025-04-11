@@ -19,6 +19,14 @@ class MyModule(torch.nn.Module):
     def forward(self, x):
         return self.net(x)
 
+# -----------------------------------------------//
+def sgd(params, lr, batch_size, lambd):
+    with torch.no_grad():
+        for param in params:
+            param -= lr * (param.grad / batch_size + lambd * param)
+            param.grad.zero_()
+# -----------------------------------------------
+
 def main(args):
     true_w, true_b = torch.ones((args.input_channel, 1)) * 0.01, 0.05
     n_train, n_test = 20, 100
@@ -42,7 +50,13 @@ def main(args):
     mode = MyModule(args.input_channel)
     mode.to(device)
 
+# -----------------------------------------------//
+    weight = torch.normal(0, 1, [args.input_channel], requires_grad = True)
+    bias = torch.normal(0, 1, [1], requires_grad = True)
+# -----------------------------------------------
+
     loss = torch.nn.MSELoss(reduction = 'none')
+    mse = lambda x, y:((x - y) ** 2).mean()
     L2 = lambda x: torch.sum(x.pow(2)) / 2
 
     for param in mode.net[0].parameters():
@@ -60,21 +74,37 @@ def main(args):
         for x, y in train_iter:
             optimizer.zero_grad()
             output = mode.forward(x)
-            l = loss(output, y) + (args.lambd * L2(mode.net[0].weight.data)).sum()
+            l = loss(output, y)
             l.mean().backward()
             optimizer.step()
+# -----------------------------------------------//
+            _output = x @ weight + bias
+            _l = mse(_output, y) + args.lambd * L2(weight)
+            _l.backward()
+            sgd([weight, bias], args.lr, args.batch_size, args.lambd)
+# -----------------------------------------------
         if (epoch + 1) % 5 == 0:
-            train_loss = loss(mode.forward(train_data[0]), train_data[1]).mean().item()
-            test_loss = loss(mode.forward(test_data[0]), test_data[1]).mean().item()
+            # train_loss = loss(mode.forward(train_data[0]), train_data[1]).mean().item()
+            # test_loss = loss(mode.forward(test_data[0]), test_data[1]).mean().item()
+            # axes.add(epoch + 1, (train_loss, test_loss))
+# -----------------------------------------------//
+            _train_loss = mse(train_data[0] @ weight + bias, train_data[1]).item()
+            _test_loss = mse(test_data[0] @ weight + bias, test_data[1]).item()
+            axes.add(epoch + 1, (_train_loss, _test_loss))
+# -----------------------------------------------
             # print('epochs : {}, train_loss : {}, test_loss : {}'.format(
             #         epoch + 1,
             #         train_loss,
             #         test_loss
             #     ))
-            axes.add(epoch + 1, (train_loss, test_loss))
+            
 
     axes.show()
     print("w's L2 norm is {}".format(mode.net[0].weight.data.norm(2).item()))
+# -----------------------------------------------//
+    print("w's L2 norm is {}".format(weight.norm(2).item()))
+# -----------------------------------------------
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
