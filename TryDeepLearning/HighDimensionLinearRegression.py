@@ -23,7 +23,7 @@ class MyModule(torch.nn.Module):
 def sgd(params, lr, batch_size, lambd):
     with torch.no_grad():
         for param in params:
-            param -= lr * (param.grad / batch_size + lambd * param)
+            param -= lr * param.grad / batch_size
             param.grad.zero_()
 # -----------------------------------------------
 
@@ -79,7 +79,7 @@ def main(args):
             optimizer.step()
 # -----------------------------------------------//
             _output = x @ weight + bias
-            _l = mse(_output, y) + args.lambd * L2(weight)
+            _l = mse(_output, y) + args.lambd * L2(weight) * args.batch_size
             _l.backward()
             sgd([weight, bias], args.lr, args.batch_size, args.lambd)
 # -----------------------------------------------
