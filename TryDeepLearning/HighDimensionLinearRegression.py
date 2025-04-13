@@ -23,7 +23,8 @@ class MyModule(torch.nn.Module):
 def sgd(params, lr, batch_size, lambd):
     with torch.no_grad():
         for param in params:
-            param -= lr * param.grad / batch_size
+            # param -= lr * param.grad / batch_size
+            param -= lr * (param.grad / batch_size + lambd * param)
             param.grad.zero_()
 # -----------------------------------------------
 
@@ -68,7 +69,7 @@ def main(args):
 
     # print(mode.net[0].weight.data.norm(2))
 
-    axes = animator(xlabel = 'epoch', ylabel = 'loss', yscale = 'log', legend = ['train loss', 'test loss'])
+    axes = animator(xlabel = 'epoch', ylabel = 'loss', yscale = 'log', legend = ['train loss-1', 'test loss-1', 'train loss-2', 'test loss-2'])
 
     for epoch in range(args.epochs):
         for x, y in train_iter:
@@ -84,13 +85,13 @@ def main(args):
             sgd([weight, bias], args.lr, args.batch_size, args.lambd)
 # -----------------------------------------------
         if (epoch + 1) % 5 == 0:
-            # train_loss = loss(mode.forward(train_data[0]), train_data[1]).mean().item()
-            # test_loss = loss(mode.forward(test_data[0]), test_data[1]).mean().item()
+            train_loss = loss(mode.forward(train_data[0]), train_data[1]).mean().item()
+            test_loss = loss(mode.forward(test_data[0]), test_data[1]).mean().item()
             # axes.add(epoch + 1, (train_loss, test_loss))
 # -----------------------------------------------//
             _train_loss = mse(train_data[0] @ weight + bias, train_data[1]).item()
             _test_loss = mse(test_data[0] @ weight + bias, test_data[1]).item()
-            axes.add(epoch + 1, (_train_loss, _test_loss))
+            axes.add(epoch + 1, (train_loss, test_loss, _train_loss, _test_loss))
 # -----------------------------------------------
             # print('epochs : {}, train_loss : {}, test_loss : {}'.format(
             #         epoch + 1,
