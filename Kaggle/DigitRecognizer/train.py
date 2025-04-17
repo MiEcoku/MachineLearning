@@ -1,8 +1,9 @@
 import torch
 import argparse
 from my_dataset import getData
-from MyModule import CNN
 import pandas as pd
+from MyModule import CNN
+from MyModule import LeNet
 
 def main(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -16,7 +17,8 @@ def main(args):
     )
     # drop_last = False
 
-    mode = CNN().to(device)
+    # mode = CNN().to(device)
+    mode = LeNet().to(device)
     optimizer = torch.optim.SGD(mode.parameters(), lr = args.lr)
     # optimizer = torch.optim.Adam(mode.parameters(), lr = args.lr)
     loss = torch.nn.CrossEntropyLoss()
